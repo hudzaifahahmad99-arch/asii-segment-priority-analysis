@@ -1,0 +1,21 @@
+-- ARSIP, JANGAN DIBUAT ULANG.
+-- View yang dihapus dari proyek. Definisi di bawah (dikomentari) hanya untuk dokumentasi.
+-- Alasan: mengurangi nilai kuartal dengan LAG (asumsi data kumulatif) padahal fact_segment_asii sudah kuartalan,
+-- sehingga hasilnya menyesatkan. View ini tidak dibuat ulang.
+-- Nama view yang dihapus (dari catatan proyek): v_bench_base, v_bench_margin, v_bench_gap, v_bench_annual,
+-- v_finding_peer, v_segment_quarterly.
+-- Catatan: pg_get_viewdef di bawah tanpa nama view; kecocokan dengan v_segment_quarterly adalah dugaan/inferensi
+-- (struktur selisih LAG). Definisi lima view lainnya belum ada di arsip ini (ada di log sesi SQL asli).
+
+--  SELECT ticker,
+--     segment,
+--     period_date,
+--     revenue - COALESCE(lag(revenue) OVER w, 0::numeric) AS revenue,
+--     gross_profit - COALESCE(lag(gross_profit) OVER w, 0::numeric) AS gross_profit,
+--     selling_expense - COALESCE(lag(selling_expense) OVER w, 0::numeric) AS selling_expense,
+--     ga_expense - COALESCE(lag(ga_expense) OVER w, 0::numeric) AS ga_expense,
+--     net_profit_raw - COALESCE(lag(net_profit_raw) OVER w, 0::numeric) AS net_profit_raw,
+--     share_equity_results - COALESCE(lag(share_equity_results) OVER w, 0::numeric) AS share_equity_results
+--    FROM fact_segment_asii
+--   WINDOW w AS (PARTITION BY ticker, segment, (substr(period_date::text, 1, 4)) ORDER BY period_date);
+--

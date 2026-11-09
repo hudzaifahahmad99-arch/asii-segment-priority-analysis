@@ -1,0 +1,164 @@
+-- ARSIP, JANGAN DIJALANKAN ULANG (tabel bak_* dan stg_* sudah ada).
+-- Restatement 2024: automotive dan infra_logistic Q1-Q4; financial_services Q4 saja.
+-- Nilai stg_* dalam miliar rupiah, dikali 1.000.000.000 saat UPDATE.
+-- Seluruh pernyataan dikomentari. Disalin dari log sesi SQL tanpa perubahan logika.
+
+-- CREATE TABLE bak_fact_segment_asii_20261027_b AS
+-- SELECT * FROM fact_segment_asii;
+-- 
+-- CREATE TABLE stg_restate_2024_20261027 (
+--     segment              varchar,
+--     period_date          date,
+--     revenue              numeric,
+--     gross_profit         numeric,
+--     selling_expense      numeric,
+--     ga_expense           numeric,
+--     share_equity_results numeric,
+--     net_profit_raw       numeric
+-- );
+-- 
+-- INSERT INTO stg_restate_2024_20261027 VALUES
+-- ('automotive',    '2024-03-31', 35342, 3899, 1686, 1540, 2123, 2975),
+-- ('automotive',    '2024-06-30', 31830, 3584, 1561, 1565, 2133, 2962),
+-- ('automotive',    '2024-09-30', 35502, 4061, 1757, 1727, 2462, 3210),
+-- ('automotive',    '2024-12-31', 34190, 4029, 1384, 2126, 1991, 2821),
+-- ('infra_logistic','2024-03-31',   589,  389,    1,   73,   80,  208),
+-- ('infra_logistic','2024-06-30',   780,  448,    1,   55,  189,  334),
+-- ('infra_logistic','2024-09-30',   870,  436,    2,   52,  119,  307),
+-- ('infra_logistic','2024-12-31',   908,  397,    2,   26,  174,  326);
+-- 
+-- SELECT s.segment,
+--        SUM(s.revenue)              - f.rev  AS d_rev,
+--        SUM(s.gross_profit)         - f.gp   AS d_gp,
+--        SUM(s.selling_expense)      - f.sell AS d_sell,
+--        SUM(s.ga_expense)           - f.ga   AS d_ga,
+--        SUM(s.share_equity_results) - f.se   AS d_se,
+--        SUM(s.net_profit_raw)       - f.np   AS d_np,
+--        SUM(s.gross_profit - s.selling_expense - s.ga_expense) AS op_profit_fy
+-- FROM stg_restate_2024_20261027 s
+-- JOIN (VALUES
+--     ('automotive',     136864, 15573, 6388, 6958, 8709, 11968),
+--     ('infra_logistic',   3147,  1670,    6,  206,  562,  1175)
+-- ) AS f(segment, rev, gp, sell, ga, se, np) ON f.segment = s.segment
+-- GROUP BY s.segment, f.rev, f.gp, f.sell, f.ga, f.se, f.np;
+-- 
+-- SELECT s.segment, s.period_date,
+--        f.revenue              / 1000000000.0 AS rev_lama,  s.revenue              AS rev_baru,
+--        f.ga_expense           / 1000000000.0 AS ga_lama,   s.ga_expense           AS ga_baru,
+--        f.share_equity_results / 1000000000.0 AS se_lama,   s.share_equity_results AS se_baru,
+--        f.net_profit_raw       / 1000000000.0 AS np_lama,   s.net_profit_raw       AS np_baru
+-- FROM stg_restate_2024_20261027 s
+-- JOIN fact_segment_asii f
+--   ON f.segment = s.segment AND f.period_date = s.period_date
+-- ORDER BY s.segment, s.period_date;
+-- 
+-- SELECT (SELECT COUNT(*) FROM bak_fact_segment_asii_20261027_b) AS n_bak,
+--        (SELECT COUNT(*) FROM stg_restate_2024_20261027)        AS n_stg;
+-- 
+-- UPDATE fact_segment_asii f
+-- SET revenue              = s.revenue              * 1000000000,
+--     gross_profit         = s.gross_profit         * 1000000000,
+--     selling_expense      = s.selling_expense      * 1000000000,
+--     ga_expense           = s.ga_expense           * 1000000000,
+--     share_equity_results = s.share_equity_results * 1000000000,
+--     net_profit_raw       = s.net_profit_raw       * 1000000000
+-- FROM stg_restate_2024_20261027 s
+-- WHERE f.segment = s.segment
+--   AND f.period_date = s.period_date;
+-- 
+-- 
+-- SELECT 'total_baris_beda_vs_backup' AS cek,
+--        (SELECT COUNT(*) FROM (
+--             SELECT * FROM fact_segment_asii
+--             EXCEPT
+--             SELECT * FROM bak_fact_segment_asii_20261027_b) x)::numeric AS nilai
+-- UNION ALL
+-- SELECT 'op_profit_otomotif_2024',
+--        SUM(gross_profit - selling_expense - ga_expense) / 1000000000.0
+-- FROM fact_segment_asii
+-- WHERE segment = 'automotive' AND EXTRACT(YEAR FROM period_date) = 2024
+-- UNION ALL
+-- SELECT 'op_profit_infra_2024',
+--        SUM(gross_profit - selling_expense - ga_expense) / 1000000000.0
+-- FROM fact_segment_asii
+-- WHERE segment = 'infra_logistic' AND EXTRACT(YEAR FROM period_date) = 2024
+-- UNION ALL
+-- SELECT 'share_equity_otomotif_2024', SUM(share_equity_results) / 1000000000.0
+-- FROM fact_segment_asii
+-- WHERE segment = 'automotive' AND EXTRACT(YEAR FROM period_date) = 2024
+-- UNION ALL
+-- SELECT 'share_equity_infra_2024', SUM(share_equity_results) / 1000000000.0
+-- FROM fact_segment_asii
+-- WHERE segment = 'infra_logistic' AND EXTRACT(YEAR FROM period_date) = 2024
+-- UNION ALL
+-- SELECT 'np_otomotif_2024', SUM(net_profit_raw) / 1000000000.0
+-- FROM fact_segment_asii
+-- WHERE segment = 'automotive' AND EXTRACT(YEAR FROM period_date) = 2024
+-- UNION ALL
+-- SELECT 'np_infra_2024', SUM(net_profit_raw) / 1000000000.0
+-- FROM fact_segment_asii
+-- WHERE segment = 'infra_logistic' AND EXTRACT(YEAR FROM period_date) = 2024;
+-- 
+-- CREATE TABLE bak_fact_segment_asii_20261027_c AS
+-- SELECT * FROM fact_segment_asii;
+-- 
+-- SELECT COUNT(*) AS n_bak FROM bak_fact_segment_asii_20261027_c;
+-- 
+-- CREATE TABLE stg_fs_q4_20261027 (
+--     segment              varchar,
+--     period_date          date,
+--     revenue              numeric,
+--     gross_profit         numeric,
+--     selling_expense      numeric,
+--     ga_expense           numeric,
+--     share_equity_results numeric,
+--     net_profit_raw       numeric
+-- );
+-- 
+-- INSERT INTO stg_fs_q4_20261027 VALUES
+-- ('financial_services', '2024-12-31', 6159, 4281, 630, 1134, 63, 2009);
+-- 
+-- WITH db AS (
+--     SELECT SUM(revenue)              / 1000000000.0 AS rev,
+--            SUM(gross_profit)         / 1000000000.0 AS gp,
+--            SUM(selling_expense)      / 1000000000.0 AS sell,
+--            SUM(ga_expense)           / 1000000000.0 AS ga,
+--            SUM(share_equity_results) / 1000000000.0 AS se,
+--            SUM(net_profit_raw)       / 1000000000.0 AS np
+--     FROM fact_segment_asii
+--     WHERE segment = 'financial_services'
+--       AND period_date BETWEEN '2024-01-01' AND '2024-09-30'
+-- )
+-- SELECT db.rev  + s.revenue              - 30663 AS d_rev,
+--        db.gp   + s.gross_profit         - 17686 AS d_gp,
+--        db.sell + s.selling_expense      -  2991 AS d_sell,
+--        db.ga   + s.ga_expense           -  5535 AS d_ga,
+--        db.se   + s.share_equity_results -   346 AS d_se,
+--        db.np   + s.net_profit_raw       -  8335 AS d_np,
+--        (db.gp + s.gross_profit) - (db.sell + s.selling_expense) - (db.ga + s.ga_expense) AS op_profit_fy,
+--        db.se   AS se_9m_db,
+--        db.np   AS np_9m_db
+-- FROM db CROSS JOIN stg_fs_q4_20261027 s;
+-- 
+-- UPDATE fact_segment_asii f
+-- SET revenue              = s.revenue              * 1000000000,
+--     gross_profit         = s.gross_profit         * 1000000000,
+--     selling_expense      = s.selling_expense      * 1000000000,
+--     ga_expense           = s.ga_expense           * 1000000000,
+--     share_equity_results = s.share_equity_results * 1000000000,
+--     net_profit_raw       = s.net_profit_raw       * 1000000000
+-- FROM stg_fs_q4_20261027 s
+-- WHERE f.segment = s.segment
+--   AND f.period_date = s.period_date;
+-- 
+-- SELECT 'baris_beda_vs_backup_c' AS cek,
+--        (SELECT COUNT(*) FROM (
+--             SELECT * FROM fact_segment_asii
+--             EXCEPT
+--             SELECT * FROM bak_fact_segment_asii_20261027_c) x)::numeric AS nilai
+-- UNION ALL SELECT 'revenue_fy',       SUM(revenue)              / 1000000000.0 FROM fact_segment_asii WHERE segment = 'financial_services' AND EXTRACT(YEAR FROM period_date) = 2024
+-- UNION ALL SELECT 'gross_profit_fy',  SUM(gross_profit)         / 1000000000.0 FROM fact_segment_asii WHERE segment = 'financial_services' AND EXTRACT(YEAR FROM period_date) = 2024
+-- UNION ALL SELECT 'selling_fy',       SUM(selling_expense)      / 1000000000.0 FROM fact_segment_asii WHERE segment = 'financial_services' AND EXTRACT(YEAR FROM period_date) = 2024
+-- UNION ALL SELECT 'ga_fy',            SUM(ga_expense)           / 1000000000.0 FROM fact_segment_asii WHERE segment = 'financial_services' AND EXTRACT(YEAR FROM period_date) = 2024
+-- UNION ALL SELECT 'share_equity_fy',  SUM(share_equity_results) / 1000000000.0 FROM fact_segment_asii WHERE segment = 'financial_services' AND EXTRACT(YEAR FROM period_date) = 2024
+-- UNION ALL SELECT 'net_profit_fy',    SUM(net_profit_raw)       / 1000000000.0 FROM fact_segment_asii WHERE segment = 'financial_services' AND EXTRACT(YEAR FROM period_date) = 2024;

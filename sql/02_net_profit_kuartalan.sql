@@ -1,0 +1,90 @@
+-- ARSIP, JANGAN DIJALANKAN ULANG.
+-- Koreksi net_profit_raw 2024-2025 ke basis kuartalan (log 27/10/2026).
+-- Seluruh pernyataan dikomentari: rumus selisih LAG merusak data yang sudah kuartalan.
+-- Catatan cakupan: pembanding tie-out pertama (stg_np_kuartalan) mengecualikan infra_logistic 2025;
+-- verifikasi akhir memuat infra_logistic 2025 = 1427 (miliar).
+-- Disalin dari log sesi SQL tanpa perubahan logika.
+
+-- CREATE TABLE bak_fact_segment_asii_20261027 AS
+-- SELECT * FROM fact_segment_asii;
+-- 
+-- SELECT (SELECT COUNT(*) FROM bak_fact_segment_asii_20261027) AS n_bak,
+--        (SELECT COUNT(*) FROM fact_segment_asii)              AS n_asli;
+-- 
+--        SELECT segment,
+--        period_date,
+--        net_profit_raw / 1000000000.0 AS np_sekarang,
+--        (net_profit_raw
+--          - COALESCE(LAG(net_profit_raw) OVER (
+--                PARTITION BY segment, EXTRACT(YEAR FROM period_date)
+--                ORDER BY period_date), 0)
+--        ) / 1000000000.0 AS np_kuartalan_jika_kumulatif
+-- FROM fact_segment_asii
+-- WHERE EXTRACT(YEAR FROM period_date) IN (2024, 2025)
+-- ORDER BY segment, period_date;
+-- 
+-- CREATE TABLE stg_np_kuartalan_20261027 AS
+-- SELECT segment,
+--        period_date,
+--        net_profit_raw AS np_kum,
+--        net_profit_raw
+--          - COALESCE(LAG(net_profit_raw) OVER (
+--                PARTITION BY segment, EXTRACT(YEAR FROM period_date)
+--                ORDER BY period_date), 0) AS np_kuartalan
+-- FROM fact_segment_asii
+-- WHERE EXTRACT(YEAR FROM period_date) IN (2024, 2025)
+--   AND NOT (segment = 'infra_logistic' AND EXTRACT(YEAR FROM period_date) = 2025);
+-- 
+-- SELECT s.segment,
+--        EXTRACT(YEAR FROM s.period_date)::int AS tahun,
+--        SUM(s.np_kuartalan) / 1000000000.0 AS jumlah_4q,
+--        v.laporan,
+--        SUM(s.np_kuartalan) / 1000000000.0 - v.laporan AS selisih,
+--        MIN(s.np_kuartalan) / 1000000000.0 AS q_terkecil
+-- FROM stg_np_kuartalan_20261027 s
+-- JOIN (VALUES
+--     ('automotive',        2024, 11773), ('automotive',        2025, 11901),
+--     ('financial_services',2024,  8486), ('financial_services',2025,  9121),
+--     ('HEMCE',             2024, 20180), ('HEMCE',             2025, 15214),
+--     ('agribisnis',        2024,  1187), ('agribisnis',        2025,  1538),
+--     ('infra_logistic',    2024,  1508),
+--     ('TI',                2024,   205), ('TI',                2025,   271),
+--     ('property',          2024,   223), ('property',          2025,   733)
+-- ) AS v(segment, tahun, laporan)
+--   ON v.segment = s.segment
+--  AND v.tahun = EXTRACT(YEAR FROM s.period_date)::int
+-- GROUP BY s.segment, EXTRACT(YEAR FROM s.period_date), v.laporan
+-- ORDER BY s.segment, tahun;
+-- 
+-- SELECT COUNT(*) AS n_stg FROM stg_np_kuartalan_20261027;
+-- 
+-- UPDATE fact_segment_asii f
+-- SET net_profit_raw = s.np_kuartalan
+-- FROM stg_np_kuartalan_20261027 s
+-- WHERE f.segment = s.segment
+--   AND f.period_date = s.period_date;
+-- 
+-- SELECT COUNT(*) AS n_berubah
+-- FROM (
+--     SELECT segment, period_date, net_profit_raw FROM fact_segment_asii
+--     EXCEPT
+--     SELECT segment, period_date, net_profit_raw FROM bak_fact_segment_asii_20261027
+-- ) x;
+-- 
+-- SELECT f.segment, EXTRACT(YEAR FROM f.period_date)::int AS tahun,
+--        SUM(f.net_profit_raw) / 1000000000.0 AS jumlah_4q,
+--        v.laporan,
+--        SUM(f.net_profit_raw) / 1000000000.0 - v.laporan AS selisih
+-- FROM fact_segment_asii f
+-- JOIN (VALUES
+--     ('automotive',2024,11773),('automotive',2025,11901),
+--     ('financial_services',2024,8486),('financial_services',2025,9121),
+--     ('HEMCE',2024,20180),('HEMCE',2025,15214),
+--     ('agribisnis',2024,1187),('agribisnis',2025,1538),
+--     ('infra_logistic',2024,1508),('infra_logistic',2025,1427),
+--     ('TI',2024,205),('TI',2025,271),
+--     ('property',2024,223),('property',2025,733)
+-- ) AS v(segment, tahun, laporan)
+--   ON v.segment = f.segment AND v.tahun = EXTRACT(YEAR FROM f.period_date)::int
+-- GROUP BY f.segment, EXTRACT(YEAR FROM f.period_date), v.laporan
+-- ORDER BY f.segment, tahun;
