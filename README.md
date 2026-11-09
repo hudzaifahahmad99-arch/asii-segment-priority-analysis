@@ -65,5 +65,3 @@ Dashboard Power BI (mode Import) mengimpor 5 view: `v_segment_scorecard`, `v_ran
 10. `sql/06_arsip_view_dihapus.sql` tidak lengkap; hanya satu definisi yang tersimpan.
 11. Tie-out laba bersih kuartalan semula mengecualikan `infra_logistic` 2025; verifikasi akhir memuatnya (1.427 miliar).
 12. Seluruh keluaran adalah dasar analisis lanjutan, bukan rekomendasi investasi.
-
-> Daftar ini disusun dari catatan yang tersedia. Cocokkan dengan daftar keterbatasan (1)-(13) di catatan proyek sebelum publikasi.
