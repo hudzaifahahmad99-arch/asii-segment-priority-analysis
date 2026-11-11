@@ -16,12 +16,12 @@ Hasil analisis ini adalah **kandidat yang layak dianalisis lebih lanjut**, bukan
 - **Infrastruktur & logistik vs properti** rapuh terhadap pilihan jendela waktu: urutannya bisa berbalik.
 - **Otomotif ASII vs median peer** (AUTO, GJTL, SMSM):
 
-| Tahun | Selisih gross margin (pp) | Selisih operating margin (pp) |
-|---|---|---|
-| 2024 | -10,14 | -10,48 |
-| 2025 | -8,11 | -8,76 |
+| Metrik | Selisih vs median peer (pp) |
+|---|---|
+| Gross margin | -10,14 dan -8,11 |
+| Operating margin | -10,48 dan -8,76 |
 
-Sumber angka: `data/v_bench_ann_gap.csv`. Selisih = margin ASII dikurangi median margin AUTO, GJTL, dan SMSM.
+Sumber angka: `data/v_bench_ann_gap.csv` (dua baris, satu per periode tahunan).
 
 ## Metode
 
@@ -53,15 +53,18 @@ Dashboard Power BI (mode Import) mengimpor 5 view: `v_segment_scorecard`, `v_ran
 
 ## Keterbatasan
 
-1. `financial_services` tidak ditampilkan di dashboard. Segmen ini diranking terpisah berdasarkan net margin, sesuai desain.
-2. Q4 2024 `financial_services` memakai basis campuran (FY dikurangi 9 bulan), ditandai `BASIS_CAMPURAN`.
-3. Q1 2024 `financial_services` punya anomali.
-4. Laba operasional tidak memasukkan `share_equity_results`.
-5. Median peer hanya dari tiga emiten (AUTO, GJTL, SMSM) dan hanya untuk gross margin dan operating margin.
-6. Hasil peringkat sensitif terhadap skema bobot dan jendela stabilitas (8 kuartal). Infrastruktur vs properti paling rentan.
-7. Data SMSM 2025 belum dicek ulang ke laporan keuangan.
-8. Koreksi SMSM Q4 2024 (beban penjualan 171.906 menjadi 71.906 juta) adalah dugaan/inferensi dari pola, lalu dikonfirmasi lewat jumlah FY2024.
-9. `sql/01_koreksi_auto.sql` direkonstruksi dari selisih terhadap `bak_fact_peer_benchmark_20261021`; bukan file asli 21/10.
-10. `sql/06_arsip_view_dihapus.sql` tidak lengkap; hanya satu definisi yang tersimpan.
-11. Tie-out laba bersih kuartalan semula mengecualikan `infra_logistic` 2025; verifikasi akhir memuatnya (1.427 miliar).
-12. Seluruh keluaran adalah dasar analisis lanjutan, bukan rekomendasi investasi.
+1. Tidak ada data modal atau aset per segmen. Peringkat mengukur profitabilitas, bukan return on capital, dan peringkat ordinal tidak mengukur ukuran segmen.
+2. Peer (AUTO, GJTL, SMSM) tidak like-for-like dengan segmen Otomotif ASII. Perannya hanya konteks dan tidak mengubah peringkat internal.
+3. Definisi laba ASII berbeda dari peer, sehingga benchmark hanya memakai gross margin dan operating margin.
+4. Peringkat ordinal 6 segmen non-keuangan rapuh terhadap bobot dan jendela stabilitas. Infrastruktur & logistik vs properti berubah pada jendela 12 kuartal. Jasa keuangan tidak diranking di sini.
+5. Operating profit = laba bruto - beban penjualan - beban G&A, tanpa `share_equity_results` (hasil bagian ekuitas JV dan asosiasi). Pernyataan "Otomotif tidak pernah top 2" hanya berlaku dengan definisi ini; bagian ekuitas FY2025 setara 74% dari laba segmen.
+6. FY2024 disajikan kembali untuk 3 segmen (automotive, infra_logistic, jasa keuangan); data 2023 tidak disesuaikan dan tidak dipakai. Pembanding 2024 di laporan kuartal 2025 dan di laporan FY2025 adalah dua penyajian berbeda (contoh: total aset 31/12/2024 = 471.356 vs 471.449).
+7. Staging awal yang kumulatif dikoreksi lewat skrip terdokumentasi (`sql/01` sampai `sql/04`). Skrip koreksi AUTO (`sql/01`) direkonstruksi, bukan file asli. Satu view warisan (`v_segment_quarterly`) ditemukan salah dan dihapus (`sql/06`, arsip parsial).
+8. Benchmark hanya FY2024-FY2025. Data SMSM 2025 belum dicek ke laporan, koreksi SMSM Q4 2024 adalah inferensi (jumlah FY2024 cocok dengan laporan), dan `net_profit` GJTL tidak dipakai.
+9. AUTO komponen Q2 2024 rugi operasional -80,725 miliar. Angka ini sah dan cocok dengan laporan.
+10. `net_profit_raw` 2023 tidak valid dan tidak dipakai.
+11. Jasa keuangan 2024: Q4 berbasis campuran (`BASIS_CAMPURAN`) dan Q1 berbeda dari pembanding.
+12. Property 2025: jumlah beban penjualan 4 kuartal = 72 vs laporan 71 miliar. Diduga pembulatan; data tidak diubah.
+13. Infra_logistic 2023 vs 2024 tidak sebanding (revenue 9.154 miliar menjadi 3.147 miliar).
+
+Seluruh keluaran adalah kandidat yang layak dianalisis lebih lanjut, bukan rekomendasi investasi.
